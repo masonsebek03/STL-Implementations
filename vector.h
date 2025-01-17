@@ -274,7 +274,7 @@ Vector<T>& Vector<T, Allocator>::operator=(Vector<T>& other)
 	return *this;
 
 }
-
+// Vector<T>& operator=(Vector<T>&& other);
 template<typename T, typename Allocator>
 Vector<T>& Vector<T, Allocator>::operator=(Vector<T>&& other)
 {
