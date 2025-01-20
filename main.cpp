@@ -1,21 +1,17 @@
 #include <iostream>
 #include <vector>
+#include <set>
 #include "vector.h"
+#include <unordered_set>
+#include "Map.h"
+#include <map>
+
+#define SUB_BOX 9
 
 int main()
 {
-	Vector<int> v;
-	v.print_data();
 
-	v.push_back(2);
-	v.print();
-	v.print_data();
-
-	v.pop_back();
-	v.pop_back();
-
-	std::vector<int> temp = { 1 };
-	temp.pop_back();
-	temp.pop_back();
-
+	std::map<int, int> test;
+	std::cout << "Key = " << 5 << ", value = " << test[5] << std::endl;
+	std::cout << "Key = " << 5 << ", value = " << test[5] << std::endl;
 }
