@@ -4,6 +4,7 @@
 #include "vector.h"
 #include <unordered_set>
 #include "Map.h"
+#include <typeinfo>
 #include <map>
 
 #define SUB_BOX 9
@@ -11,7 +12,7 @@
 int main()
 {
 
-	std::map<int, int> test;
-	std::cout << "Key = " << 5 << ", value = " << test[5] << std::endl;
-	std::cout << "Key = " << 5 << ", value = " << test[5] << std::endl;
+	Map<int, int> my_map;
+	my_map[]
+
 }

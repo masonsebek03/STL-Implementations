@@ -1,138 +1,206 @@
-#pragma once
 
 #ifndef MAP_H
 #define MAP_H
 
 
-
 typedef enum {
-	ZERO, // black
-	ONE,  // red
-} Color;
+	RED,
+	BLACK
+} color_t;
 
-template<typename K, typename V>
-struct RedBlackNode {
-	RedBlackNode* parent;
-	RedBlackNode* left;
-	RedBlackNode* right;
-	K key;
-	V value;
-	Color color;
-
-	RedBlackNode() : parent(nullptr), left(nullptr), right(nullptr), key(nullptr), value(nullptr), color(nullptr){}
-	RedBlackNode(Color _color) : parent(nullptr), left(nullptr), right(nullptr), key(nullptr), value(nullptr), color(_color) {}
-	RedBlackNode(K _key, Color _color) : parent(nullptr), left(nullptr), right(nullptr), key(_key), value(nullptr), color(_color) {}
-	RedBlackNode(K _key, V _value) : parent(nullptr), left(nullptr), right(nullptr), key(_key), value(_value), color(nullptr){}
-	RedBlackNode(K _key, V _value, Color _color) : parent(nullptr), left(nullptr), right(nullptr), key(_key), value(_value), color(_color) {}
-	RedBlackNode(K _key, V _value, Color _color, RedBlackNode* _parent) : parent(_parent), left(nullptr), right(nullptr), key(_key), value(_value), color(_color) {}
+template<typename V>
+struct DefaultValue {
+	static V& GetDefaultValue() { return V(); }
 };
 
 
+template<typename K, typename V>
+struct RBNode {
+	RBNode* parent;
+	RBNode* right;
+	RBNode* left;
+	color_t color;
+	K _key;
+	V _value;
+	bool nil;
 
+	RBNode() : parent(nullptr), right(nullptr), left(nullptr), color(BLACK), _key(nullptr), _value(nullptr) {}
+	RBNode(color_t _color) : parent(nullptr), right(nullptr), left(nullptr), color(_color), _key(nullptr), _value(nullptr) {}
+	RBNode(K k, V v, color_t _color) : parent(nullptr), right(nullptr), left(nullptr), color(_color), _key(k), _value(v) {}
+
+};
 
 template<typename K, typename V>
 class Map {
 private:
-	RedBlackNode<K, V>* root;
-
+	RBNode<K,V>* root;
+	RBNode<K,V>* null_node;
 
 public:
 	Map() {
-		root = new RedBlackNode<K, V>(Color::ZERO);
+		null_node = new RBNode<K,V>(BLACK);
+		null_node->nil = true;
+		root = null_node;
 	}
 
-	V& operator[](K key);
+	V& operator[](const K& key, const V& value);
+	V& operator[](const K& key);
 
 private:
-	void insert(K _key, V _value);
-	void left_rotate(RedBlackNode<K, V>* node);
-	void right_rotate(RedBlackNode<K, V>* node);
-	
-	void fix_insert(RedBlackNode<K, V>* node);
-
+	void insert(K key, V value);
+	void fix_insert(RBNode<K, V>* z);
+	void right_rotate(RBNode<K, V>* z);
+	void left_rotate(RBNode<K, V>* z);
+	V& search(const K& key);
 };
 
 template<typename K, typename V>
-V& Map<K, V>::operator[](K key) {
-	RedBlackNode* temp = root;
-	while (temp != nullptr) {
-		if (key < temp->key) {
-			temp = temp->left;
+V& Map<K, V>::search(const K& key)
+{
+	RBNode* begin = root;
+	while (begin != null_node) {
+		if (key < begin->_key) {
+			begin = begin->left;
 		}
-		else if (key > temp->key) {
-			temp = temp->right;
+		else if (key > begin->_key) {
+			begin = begin->right;
 		}
 		else {
-			return temp->value;
+			return begin->_value;
 		}
 	}
-
-	return 0;
-
-
+	return nullptr;
 }
 
 template<typename K, typename V>
-void Map<K, V>::fix_insert(RedBlackNode<K, V>* node)
+V& Map<K, V>::operator[](const K& key, const V& value)
 {
-	while (node->parent && node->parent->color == Color::ONE) {
-		if (node->parent == node->parent->parent->left) {
-			RedBlackNode* y = node->parent->parent->right;
-			if (y->color == Color::ONE) {
-				node->parent->color = Color::ZERO;
-				y->color = Color::ZERO;
-				node->parent->parent->color = Color::ONE;
-				node = node->parent->parent;
+
+}
+
+// search RB tree to find key, otherwise insert with default constructor
+template<typename K, typename V>
+V& Map<K, V>::operator[](const K& key)
+{
+	V* result = search(key);
+	if (result == nullptr) {
+		insert(key, DefaultValue<V>::GetDefaultValue());
+		return DefaultValue<V>::GetDefaultValue();
+	}
+
+	return result;
+}
+
+template<typename K, typename V>
+void Map<K, V>::left_rotate(RBNode<K, V>* z)
+{
+	RBNode* y = z->right;
+	z->right = y->left;
+
+	if (y->left != null_node) {
+		y->left->parent = z;
+	}
+
+	y->parent = z->parent;
+	if (z->parent == nullptr) {
+		root = y;
+	}
+	else if (z == z->parent->right) {
+		z->parent->left = y;
+	}
+	else {
+		z->parent->right = y;
+	}
+
+	y->left = z;
+	z->parent = y;
+}
+
+template<typename K, typename V>
+void Map<K, V>::right_rotate(RBNode<K, V>* z)
+{
+	RBNode* y = z->left;
+	z->left = y->right;
+
+	if (y->right != null_node) {
+		y->right->parent = z;
+	}
+
+	y->parent = z->parent;
+	if (z->parent == nullptr) {
+		root = y;
+	}
+	else if (z == z->parent->right) {
+		z->parent->right = y;
+	}
+	else {
+		z->parent->left = y;
+	}
+
+	y->right = z;
+	z->parent = y;
+}
+
+template<typename K, typename V>
+void Map<K, V>::fix_insert(RBNode<K, V>* z)
+{
+	while (z->parent && z->parent->color == RED) {
+		// if z's parent if left child of grandparent
+		if (z->parent == z->parent->parent->left) {
+			RBNode* y = z->parent->parent->right;
+			if (y->color == RED) {
+				z->parent->color = BLACK;
+				y->color = BLACK;
+				z->parent->parent->color = RED;
+				z = z->parent->parent;
 			}
 			else {
-				if (node == node->parent->right) {
-					node = node->parent;
-					left_rotate(node->parent->parent);
+				if (z == z->parent->right) {
+					z = z->parent;
+					left_rotate(z);
 				}
-				node->parent->color = Color::ZERO;
-				node->parent->parent->color = Color::ONE;
-				right_rotate(node->parent->parent);
+				z->parent->color = BLACK;
+				z->parent->parent->color = RED;
+				right_rotate(z->parent->parent);
 			}
 		}
 		else {
-			RedBlackNode* y = node->parent->parent->left;
-			if (y.color == Color::ONE) {
-				node->parent->color = Color::ZERO;
-				y->color = Color::ZERO;
-				node->parent->parent->color = Color::ONE;
-				node = node->parent->parent;
+			RBNode* y = z->parent->parent->left;
+			if (y->color == RED) {
+				z->parent->color = BLACK;
+				y->color = BLACK;
+				z->parent->parent = RED;
+				z = z->parent->parent;
 			}
 			else {
-				if (node == node->parent->left) {
-					node = node->parent;
-					right_rotate(node);
+				if (z == z->parent->left) {
+					z = z->parent;
+					right_rotate(z);
 				}
-
-				node->parent->color == Color::ZERO;
-				node->parent->parent->color = Color::ONE;
-				left_rotate(node->parent->parent);
+				z->parent->color = BLACK;
+				z->parent->parent->color = RED;
+				left_rotate(z->parent->parent);
 			}
 		}
 
-		if (node == root) {
+		if (z == root) 
 			break;
-		}
 
-		root->color = Color::ZERO;
+		root->color = BLACK;
 	}
 }
 
+// Insert Z and color it red || Recolor and fix any violations
 template<typename K, typename V>
-void Map<K, V>::insert(K _key, V _value)
+void Map<K, V>::insert(K key, V value)
 {
-	RedBlackNode* ins = new RedBlackNode(_key, _value, Color::ONE);
+	RBNode* z = new RBNode(key, value, RED);
+	RBNode* y = nullptr;
+	RBNode* x = root;
 
-	RedBlackNode* x = root;
-	RedBlackNode* y;
-
-	while (root != nullptr) {
+	while (x != nullptr) {
 		y = x;
-		if (ins->key < x->key) {
+		if (z->_key < x->_key) {
 			x = x->left;
 		}
 		else {
@@ -140,22 +208,21 @@ void Map<K, V>::insert(K _key, V _value)
 		}
 	}
 
-	ins->parent = y;
+	z->parent = y;
+
 	if (y == nullptr) {
-		root = ins;
+		root = z;
 	}
-	else if (ins->key < y->key) {
-		y->left = ins;
+	else if (z->_key < y->_key) {
+		y->left = z;
 	}
 	else {
-		y->right = ins;
+		y->right = z;
 	}
 
-	// function to fix up insertion.
-	fix_insert(ins);
+	// some fix up.
+	fix_insert(z);
 }
-
-
 
 
 
